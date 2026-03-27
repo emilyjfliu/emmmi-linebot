@@ -1,0 +1,24 @@
+{
+  "name": "what-to-cook-tonight",
+  "version": "1.0.0",
+  "description": "今晚煮什麼 - LINE Bot 智慧飲食助手",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^9.3.0",
+    "@anthropic-ai/sdk": "^0.24.0",
+    "express": "^4.19.2",
+    "axios": "^1.7.2",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
