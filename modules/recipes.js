@@ -90,14 +90,12 @@ async function handleCategoryChoice(userId, choice, isRandom = false) {
     return '請輸入 1 到 6 的數字來選擇類型喔！';
   }
 
-  // 取得現有食材（用來比對齊全度）
-  const availableIngredients = await notion.getAllIngredients();
-  const availableIds = new Set(availableIngredients.filter(i => i.hasIt).map(i => i.id));
-
-  // 取得該類別食譜
+  // 取得該類別食譜（並行查詢加速）
   let recipes = [];
-  for (const notionVal of category.notionValues) {
-    const found = await notion.getRecipesByCategory(notionVal);
+  const results = await Promise.all(
+    category.notionValues.map(val => notion.getRecipesByCategory(val))
+  );
+  for (const found of results) {
     recipes = recipes.concat(found);
   }
 
@@ -113,10 +111,24 @@ async function handleCategoryChoice(userId, choice, isRandom = false) {
     return `目前「${category.label}」分類還沒有食譜，\n可以從 IG 收藏料理貼文來自動新增喔！`;
   }
 
-  // 計算每道食譜的食材齊全度
+  // 取得現有食材（用來比對齊全度）
+  // 用 timeout 保護，避免 Notion 查太慢
+  let availableIngredients = [];
+  let availableIds = new Set();
+  try {
+    availableIngredients = await Promise.race([
+      notion.getAllIngredients(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]);
+    availableIds = new Set(availableIngredients.filter(i => i.hasIt).map(i => i.id));
+  } catch {
+    // 食材查詢超時也沒關係，繼續顯示食譜列表
+    console.log('⚠️ 食材查詢超時，跳過齊全度比對');
+  }
+
+  // 計算每道食譜的食材齊全度（只用 id 比對，不額外查 Notion）
   const recipesWithStatus = recipes.map(recipe => {
-    const totalIngredients = recipe.ingredientIds.length;
-    if (totalIngredients === 0) {
+    if (recipe.ingredientIds.length === 0 || availableIds.size === 0) {
       return { ...recipe, status: 'unknown', missingCount: 0 };
     }
     const missingCount = recipe.ingredientIds.filter(id => !availableIds.has(id)).length;
@@ -130,7 +142,7 @@ async function handleCategoryChoice(userId, choice, isRandom = false) {
     return await handleRandomPick(recipesWithStatus, availableIngredients);
   }
 
-  // 瀏覽模式：列出食譜讓使用者選
+  // 瀏覽模式：列出食譜讓使用者選，存入狀態
   setUserState(userId, {
     mode: 'browse_recipes',
     recipes: recipesWithStatus,

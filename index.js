@@ -33,11 +33,14 @@ app.post('/webhook', line.middleware(lineConfig), async (req, res) => {
 
   const events = req.body.events;
   for (const event of events) {
-    try {
-      await handleEvent(event);
-    } catch (err) {
-      console.error('❌ 處理事件失敗：', err.message, err.stack);
-    }
+    // 用 setImmediate 讓事件處理在背景執行，不阻塞 HTTP 回應
+    setImmediate(async () => {
+      try {
+        await handleEvent(event);
+      } catch (err) {
+        console.error('❌ 處理事件失敗：', err.message, err.stack);
+      }
+    });
   }
 });
 
