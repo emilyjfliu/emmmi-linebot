@@ -43,23 +43,15 @@ function buildCategoryMenu(isRandom) {
   };
 }
 
-// 建立 DarChef 風格食譜卡片
-function buildRecipeFlexCard(name, ingredientsList, stepsText, tutorialUrl, notionUrl) {
-  // 食材列表項目
+// DarChef 風格食譜卡片（帶圖片）
+function buildRecipeFlexCard(name, imageUrl, ingredientsList, stepsText, tutorialUrl, notionUrl) {
+  // 食材列表
   const ingContents = ingredientsList.slice(0, 10).map(function(ing) {
-    return {
-      type: 'text',
-      text: ing,
-      size: 'sm',
-      color: DARK,
-      wrap: true
-    };
+    return { type: 'text', text: ing, size: 'sm', color: DARK, wrap: true };
   });
 
-  // 步驟文字（截斷）
-  const stepsDisplay = stepsText ? stepsText.substring(0, 400) + (stepsText.length > 400 ? '...' : '') : '';
+  const stepsDisplay = stepsText ? stepsText.substring(0, 350) + (stepsText.length > 350 ? '...' : '') : null;
 
-  // footer 按鈕
   var footerAction;
   if (tutorialUrl) {
     footerAction = { type: 'uri', label: '查看完整食譜', uri: tutorialUrl };
@@ -70,193 +62,97 @@ function buildRecipeFlexCard(name, ingredientsList, stepsText, tutorialUrl, noti
   }
 
   var bodyContents = [
-    // 所需食材標題
-    {
-      type: 'text',
-      text: '所需食材',
-      weight: 'bold',
-      size: 'sm',
-      color: ORANGE_DARK,
-      margin: 'none'
-    }
+    { type: 'text', text: '所需食材', weight: 'bold', size: 'sm', color: ORANGE_DARK, margin: 'none' }
   ];
 
-  // 加入食材
   ingContents.forEach(function(c) { bodyContents.push(c); });
 
-  // 分隔線
+  bodyContents.push({ type: 'separator', margin: 'md', color: ORANGE });
   bodyContents.push({
-    type: 'separator',
-    margin: 'md',
-    color: ORANGE
+    type: 'text', text: '🍳 製作方法', weight: 'bold', size: 'sm', color: ORANGE_DARK, margin: 'md'
   });
 
-  // 製作方法標題
-  bodyContents.push({
-    type: 'box',
-    layout: 'horizontal',
-    margin: 'md',
-    contents: [
-      {
-        type: 'text',
-        text: '🍳 製作方法',
-        weight: 'bold',
-        size: 'sm',
-        color: ORANGE_DARK,
-        flex: 1
-      }
-    ]
-  });
-
-  // 步驟內容
   if (stepsDisplay) {
-    bodyContents.push({
-      type: 'text',
-      text: stepsDisplay,
-      size: 'xs',
-      color: DARK,
-      wrap: true,
-      margin: 'sm'
-    });
+    bodyContents.push({ type: 'text', text: stepsDisplay, size: 'xs', color: DARK, wrap: true, margin: 'sm' });
   } else {
-    bodyContents.push({
-      type: 'text',
-      text: '（請點擊下方按鈕查看完整步驟）',
-      size: 'xs',
-      color: GRAY,
-      wrap: true,
-      margin: 'sm'
-    });
+    bodyContents.push({ type: 'text', text: '（點擊下方按鈕查看完整步驟）', size: 'xs', color: GRAY, wrap: true, margin: 'sm' });
+  }
+
+  var bubble = {
+    type: 'bubble',
+    header: {
+      type: 'box',
+      layout: 'vertical',
+      backgroundColor: ORANGE,
+      paddingAll: 'lg',
+      contents: [
+        { type: 'text', text: name, weight: 'bold', size: 'lg', color: WHITE, wrap: true }
+      ]
+    },
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      backgroundColor: WHITE,
+      paddingAll: 'lg',
+      spacing: 'sm',
+      contents: bodyContents
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      backgroundColor: ORANGE,
+      paddingAll: 'md',
+      contents: [
+        { type: 'button', action: footerAction, color: WHITE, style: 'link', height: 'sm' }
+      ]
+    }
+  };
+
+  // 有圖片才加 hero
+  if (imageUrl && imageUrl.startsWith('http')) {
+    bubble.hero = {
+      type: 'image',
+      url: imageUrl,
+      size: 'full',
+      aspectRatio: '20:13',
+      aspectMode: 'cover',
+      action: footerAction
+    };
   }
 
   return {
     type: 'flex',
     altText: name,
-    contents: {
-      type: 'bubble',
-      header: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: ORANGE,
-        paddingAll: 'lg',
-        contents: [
-          {
-            type: 'text',
-            text: name,
-            weight: 'bold',
-            size: 'lg',
-            color: WHITE,
-            wrap: true
-          }
-        ]
-      },
-      body: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: WHITE,
-        paddingAll: 'lg',
-        spacing: 'sm',
-        contents: bodyContents
-      },
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: ORANGE,
-        paddingAll: 'md',
-        contents: [
-          {
-            type: 'button',
-            action: footerAction,
-            color: WHITE,
-            style: 'link',
-            height: 'sm'
-          }
-        ]
-      }
-    }
+    contents: bubble
   };
 }
 
-// 建立食譜列表（多個小卡片 carousel）
+// 小卡片 Carousel（列表用）
 function buildRecipeListCarousel(recipesWithStatus) {
   var bubbles = recipesWithStatus.slice(0, 10).map(function(r, i) {
     var icon = r.status === 'complete' ? '✅' : (r.missingCount > 0 ? '⚠️' : '❓');
-    var label = (i + 1) + '. ' + r.name;
-    if (label.length > 40) label = label.substring(0, 37) + '...';
-
     return {
       type: 'bubble',
       size: 'micro',
       header: {
-        type: 'box',
-        layout: 'vertical',
-        backgroundColor: ORANGE,
-        paddingAll: 'sm',
-        contents: [
-          {
-            type: 'text',
-            text: icon,
-            size: 'xxs',
-            color: WHITE,
-            align: 'end'
-          }
-        ]
+        type: 'box', layout: 'vertical', backgroundColor: ORANGE, paddingAll: 'sm',
+        contents: [{ type: 'text', text: icon, size: 'xxs', color: WHITE, align: 'end' }]
       },
       body: {
-        type: 'box',
-        layout: 'vertical',
-        paddingAll: 'sm',
+        type: 'box', layout: 'vertical', paddingAll: 'sm',
         contents: [
-          {
-            type: 'text',
-            text: (i + 1) + '. ' + r.name,
-            weight: 'bold',
-            size: 'sm',
-            color: DARK,
-            wrap: true
-          },
-          {
-            type: 'text',
-            text: (r.category || []).join('／') || '料理',
-            size: 'xxs',
-            color: GRAY,
-            margin: 'xs'
-          },
-          {
-            type: 'text',
-            text: r.status === 'complete' ? '食材齊全 ✅' : ('缺 ' + r.missingCount + ' 樣'),
-            size: 'xxs',
-            color: r.status === 'complete' ? '#27AE60' : '#E74C3C',
-            margin: 'xs'
-          }
+          { type: 'text', text: (i + 1) + '. ' + r.name, weight: 'bold', size: 'sm', color: DARK, wrap: true },
+          { type: 'text', text: (r.category || []).join('／') || '料理', size: 'xxs', color: GRAY, margin: 'xs' },
+          { type: 'text', text: r.status === 'complete' ? '食材齊全 ✅' : '缺 ' + r.missingCount + ' 樣', size: 'xxs', color: r.status === 'complete' ? '#27AE60' : '#E74C3C', margin: 'xs' }
         ]
       },
       footer: {
-        type: 'box',
-        layout: 'vertical',
-        paddingAll: 'sm',
-        backgroundColor: ORANGE,
-        contents: [
-          {
-            type: 'button',
-            action: { type: 'message', label: '選這道', text: String(i + 1) },
-            color: WHITE,
-            style: 'link',
-            height: 'sm'
-          }
-        ]
+        type: 'box', layout: 'vertical', paddingAll: 'sm', backgroundColor: ORANGE,
+        contents: [{ type: 'button', action: { type: 'message', label: '選這道', text: String(i + 1) }, color: WHITE, style: 'link', height: 'sm' }]
       }
     };
   });
-
-  return {
-    type: 'flex',
-    altText: '食譜列表',
-    contents: {
-      type: 'carousel',
-      contents: bubbles
-    }
-  };
+  return { type: 'flex', altText: '食譜列表', contents: { type: 'carousel', contents: bubbles } };
 }
 
 async function handleCategoryChoice(userId, choice, isRandom) {
@@ -275,9 +171,7 @@ async function handleCategoryChoice(userId, choice, isRandom) {
   const seen = new Set();
   recipes = recipes.filter(function(r) { if (seen.has(r.id)) return false; seen.add(r.id); return true; });
 
-  if (recipes.length === 0) {
-    return { type: 'text', text: '目前「' + category.label + '」分類還沒有食譜 😅' };
-  }
+  if (recipes.length === 0) return { type: 'text', text: '目前「' + category.label + '」分類還沒有食譜 😅' };
 
   let availableIds = new Set();
   let availableIngredients = [];
@@ -312,18 +206,11 @@ async function handleCategoryChoice(userId, choice, isRandom) {
 
 async function handleRandomPick(recipesWithStatus, availableIngredients) {
   let expiringIds = new Set();
-  try {
-    const e = await notion.getExpiringIngredients();
-    expiringIds = new Set(e.map(function(i) { return i.id; }));
-  } catch(e) {}
+  try { const e = await notion.getExpiringIngredients(); expiringIds = new Set(e.map(function(i) { return i.id; })); } catch(e) {}
 
   const tier1 = recipesWithStatus.filter(function(r) { return r.status === 'complete'; });
-  const tier2 = recipesWithStatus.filter(function(r) {
-    return r.status !== 'complete' && (r.ingredientIds || []).some(function(id) { return expiringIds.has(id); });
-  });
-  const tier3 = recipesWithStatus.filter(function(r) {
-    return r.status !== 'complete' && !(r.ingredientIds || []).some(function(id) { return expiringIds.has(id); });
-  });
+  const tier2 = recipesWithStatus.filter(function(r) { return r.status !== 'complete' && (r.ingredientIds || []).some(function(id) { return expiringIds.has(id); }); });
+  const tier3 = recipesWithStatus.filter(function(r) { return r.status !== 'complete' && !(r.ingredientIds || []).some(function(id) { return expiringIds.has(id); }); });
 
   const pool = tier1.length > 0 ? tier1 : (tier2.length > 0 ? tier2 : tier3);
   if (!pool || pool.length === 0) return { type: 'text', text: '找不到合適的食譜 😅' };
@@ -343,26 +230,23 @@ async function handleRecipeSelection(userId, input) {
 
 async function buildRecipeResponse(recipe, availableIngredients, isRandom) {
   let detail;
-  try {
-    detail = await notion.getRecipeDetail(recipe.id);
-  } catch(e) {
-    return { type: 'text', text: '取得食譜詳情失敗：' + e.message };
-  }
+  try { detail = await notion.getRecipeDetail(recipe.id); }
+  catch(e) { return { type: 'text', text: '取得食譜詳情失敗：' + e.message }; }
 
   const availableIds = new Set((availableIngredients || []).filter(function(i) { return i.hasIt; }).map(function(i) { return i.id; }));
   const ings = detail.ingredients || [];
+  const missing = ings.filter(function(ing) { return !availableIds.has(ing.id); }).map(function(ing) { return ing.name; });
 
-  // 食材顯示（加上 ✅/❌ 標示）
+  // 食材顯示加 ✅/❌
   const ingDisplay = ings.map(function(ing) {
     return (availableIds.has(ing.id) ? '✅ ' : '❌ ') + ing.name;
   });
-
-  const missing = ings.filter(function(ing) { return !availableIds.has(ing.id); }).map(function(ing) { return ing.name; });
 
   const prefix = isRandom ? [{ type: 'text', text: '🎲 為你隨機推薦：' }] : [];
 
   const card = buildRecipeFlexCard(
     detail.name,
+    detail.imageUrl || null,
     ingDisplay.length > 0 ? ingDisplay : ['（尚未設定食材）'],
     detail.steps || '',
     detail.tutorialUrl || '',
@@ -371,7 +255,6 @@ async function buildRecipeResponse(recipe, availableIngredients, isRandom) {
 
   const result = prefix.concat([card]);
 
-  // 缺料提示（文字訊息）
   if (missing.length > 0) {
     let missText = '⚠️ 缺少：' + missing.join('、');
     try {
@@ -380,6 +263,12 @@ async function buildRecipeResponse(recipe, availableIngredients, isRandom) {
       if (sug.length > 0) missText += '\n\n💡 買了「' + missing[0] + '」還能做：' + sug.join('、');
     } catch(e) {}
     result.push({ type: 'text', text: missText });
+  } else if (ings.length > 0) {
+    result.push({ type: 'text', text: '✨ 食材全部齊全，可以直接做！' });
+  }
+
+  if (detail.prepNote) {
+    result.push({ type: 'text', text: '📝 備菜提醒：' + detail.prepNote });
   }
 
   return result;
@@ -403,21 +292,21 @@ async function searchByIngredient(ingredientName) {
   }
 
   let availableIds = new Set();
+  let availableIngredients = [];
   try {
-    const ings = await Promise.race([
+    availableIngredients = await Promise.race([
       notion.getAllIngredients(),
       new Promise(function(_, r) { setTimeout(function() { r(new Error('t')); }, 4000); })
     ]);
-    availableIds = new Set(ings.filter(function(i) { return i.hasIt; }).map(function(i) { return i.id; }));
+    availableIds = new Set(availableIngredients.filter(function(i) { return i.hasIt; }).map(function(i) { return i.id; }));
   } catch(e) {}
 
   const recipesWithStatus = allRecipes.map(function(r) {
     const miss = (r.ingredientIds || []).filter(function(id) { return !availableIds.has(id); }).length;
-    return Object.assign({}, r, { status: miss === 0 ? 'complete' : 'incomplete', missingCount: miss });
+    return Object.assign({}, r, { status: miss === 0 ? 'complete' : 'incomplete', missingCount: miss, availableIngredients: availableIngredients });
   });
 
-  // 存入狀態
-  setUserState('_search_' + ingredientName, { mode: 'browse_recipes', recipes: recipesWithStatus, availableIngredients: [] });
+  setUserState(ingredientName + '_search', { mode: 'browse_recipes', recipes: recipesWithStatus, availableIngredients: availableIngredients });
 
   return [
     { type: 'text', text: '🔍 含「' + ingredientName + '」的食譜（' + recipesWithStatus.length + ' 道）\n👇 滑動選擇食譜' },
@@ -429,14 +318,7 @@ function getWhatToEatMenu() { return buildCategoryMenu(false); }
 function getRandomRecommendMenu() { return buildCategoryMenu(true); }
 
 module.exports = {
-  getWhatToEatMenu,
-  getRandomRecommendMenu,
-  handleCategoryChoice,
-  handleRecipeSelection,
-  searchByIngredient,
-  setUserState,
-  getUserState,
-  clearUserState,
-  buildCategoryMenu,
-  CATEGORY_MAP
+  getWhatToEatMenu, getRandomRecommendMenu, handleCategoryChoice,
+  handleRecipeSelection, searchByIngredient, setUserState, getUserState,
+  clearUserState, buildCategoryMenu, CATEGORY_MAP
 };
