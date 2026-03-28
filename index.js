@@ -118,6 +118,7 @@ async function processInput(userId, input, state) {
   }
 
   // STEP 2: 固定指令
+  if (/菜單|選單|幫助|說明|menu/i.test(input)) { return getHelpText(); }
   if (/我要吃什麼|今天吃什麼|今晚吃什麼|吃什麼/.test(input)) {
     recipes.setUserState(userId, { mode: 'select_category' });
     return recipes.buildCategoryMenu(false);
@@ -220,8 +221,52 @@ async function handleMealPlanning(days) {
   }
 }
 
+function _menuRow(emoji, title, sub, msg) {
+  return { type: 'box', layout: 'horizontal', paddingTop: '10px', paddingBottom: '10px',
+    action: { type: 'message', label: title, text: msg },
+    contents: [
+      { type: 'text', text: emoji, size: 'lg', flex: 0 },
+      { type: 'box', layout: 'vertical', flex: 1, margin: 'md', contents: [
+        { type: 'text', text: title, size: 'sm', weight: 'bold', color: '#333333' },
+        { type: 'text', text: sub, size: 'xs', color: '#8C8C8C' },
+      ]},
+      { type: 'text', text: '›', size: 'lg', color: '#CCCCCC', flex: 0, gravity: 'center' },
+    ],
+  };
+}
 function getHelpText() {
-  return '嗨！我是「今晚煮什麼」助手 🍳\n\n📋 查詢食譜\n・「我要吃什麼」\n・「隨機推薦」\n・輸入食材名（如「番茄」）\n\n🥕 更新食材\n・「番茄 +6個」或「番茄+6」\n・「番茄 -2」\n・「豬五花 +300g 冷凍」\n\n📅 其他\n・「規劃餐點」\n・「查看食材」';
+  return {
+    type: 'flex', altText: '今天煮什麼！功能選單',
+    contents: {
+      type: 'bubble', size: 'mega',
+      header: {
+        type: 'box', layout: 'vertical',
+        backgroundColor: '#E8845A', paddingAll: '20px',
+        contents: [
+          { type: 'text', text: '🍳 今天煮什麼！', weight: 'bold', size: 'xl', color: '#FFFFFF' },
+          { type: 'text', text: '你的智慧飲食小助手', size: 'sm', color: '#FFE8D6' },
+        ],
+      },
+      body: {
+        type: 'box', layout: 'vertical', paddingAll: '16px',
+        contents: [
+          _menuRow('🍽️', '我要吃什麼', '依類別瀏覽食譜', '我要吃什麼'),
+          { type: 'separator', margin: 'none', color: '#EEEEEE' },
+          _menuRow('🎲', '隨機推薦', '幫我隨機挑一道', '隨機推薦'),
+          { type: 'separator', margin: 'none', color: '#EEEEEE' },
+          _menuRow('🥕', '查看食材', '目前食材庫狀況', '查看食材'),
+          { type: 'separator', margin: 'none', color: '#EEEEEE' },
+          _menuRow('📅', '規劃餐點', '安排接下來幾天的餐', '規劃餐點'),
+          { type: 'separator', margin: 'none', color: '#EEEEEE' },
+          _menuRow('🔍', '食材搜尋', '輸入食材名稱直接搜尋', '番茄'),
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', paddingAll: '12px',
+        contents: [{ type: 'text', text: '💡 輸入任意食材名稱可搜尋食譜', size: 'xs', color: '#8C8C8C', align: 'center' }],
+      },
+    },
+  };
 }
 
 app.get('/', function(req, res) { res.send('今晚煮什麼 Bot 🍳'); });
