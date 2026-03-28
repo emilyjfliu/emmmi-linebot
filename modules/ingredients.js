@@ -129,6 +129,13 @@ async function getIngredientListText() {
     return '目前食材庫是空的，可以輸入「番茄 +6個」來新增食材喔！';
   }
 
+  // Tag emoji 對照
+  const tagEmoji = {
+    '肉類': '🥩', '蛋白質': '🥚', '蔬菜': '🥦', '調料': '🧂',
+    '穀物': '🌾', '乳製品': '🥛', '水果': '🍎', '海鮮': '🦐',
+    '零食': '🍪', '其他': '🧺'
+  };
+
   // 依 Tag 分組
   const grouped = {};
   for (const item of ingredients) {
@@ -137,15 +144,22 @@ async function getIngredientListText() {
     grouped[tag].push(item);
   }
 
-  let text = '🛒 目前食材庫\n\n';
+  let text = '🛒 食材庫（共 ' + ingredients.length + ' 樣）\n──────────────\n';
   for (const [tag, items] of Object.entries(grouped)) {
-    text += `【${tag}】\n`;
-    for (const item of items) {
-      const qty = item.quantity ? `${item.quantity}${item.unit}` : '';
-      const storage = item.storage ? `（${item.storage}）` : '';
-      text += `・${item.name} ${qty}${storage}\n`;
+    const emoji = tagEmoji[tag] || '📦';
+    text += '\n' + emoji + ' ' + tag + '\n';
+    // 每行最多顯示 4 個，超過換行
+    const chunks = [];
+    for (let i = 0; i < items.length; i += 4) {
+      chunks.push(items.slice(i, i + 4));
     }
-    text += '\n';
+    for (const chunk of chunks) {
+      text += chunk.map(function(item) {
+        const qty = item.quantity ? item.quantity + (item.unit || '') : '';
+        const cold = item.storage === '冷凍' ? '❄' : '';
+        return item.name + (qty ? '(' + qty + ')' : '') + cold;
+      }).join('　') + '\n';
+    }
   }
 
   return text.trim();
