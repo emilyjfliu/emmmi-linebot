@@ -167,7 +167,7 @@ function buildRecipeListCarousel(recipesWithStatus) {
         contents: [
           { type: 'text', text: (i + 1) + '. ' + r.name, weight: 'bold', size: 'sm', color: DARK, wrap: true },
           { type: 'text', text: (r.category || []).join('／') || '料理', size: 'xxs', color: GRAY, margin: 'xs' },
-          { type: 'text', text: r.status === 'complete' ? '食材齊全 ✅' : '缺 ' + r.missingCount + ' 樣', size: 'xxs', color: r.status === 'complete' ? '#27AE60' : '#E74C3C', margin: 'xs' }
+          { type: 'text', text: r.status === 'complete' ? '食材齊全 ✅' : '缺：' + (r.missingNames && r.missingNames.length > 0 ? r.missingNames.slice(0, 3).join('、') : r.missingCount + '樣'), size: 'xxs', color: r.status === 'complete' ? '#27AE60' : '#E74C3C', margin: 'xs', wrap: true }
         ]
       },
       footer: {
@@ -207,12 +207,15 @@ async function handleCategoryChoice(userId, choice, isRandom) {
     availableIds = new Set(availableIngredients.filter(function(i) { return i.hasIt; }).map(function(i) { return i.id; }));
   } catch(e) { console.log('食材查詢:', e.message); }
 
+  const idToName = {};
+  availableIngredients.forEach(function(i) { idToName[i.id] = i.name; });
   const recipesWithStatus = recipes.map(function(r) {
     if (!r.ingredientIds || r.ingredientIds.length === 0 || availableIds.size === 0) {
-      return Object.assign({}, r, { status: 'unknown', missingCount: 0 });
+      return Object.assign({}, r, { status: 'unknown', missingCount: 0, missingNames: [] });
     }
-    const miss = r.ingredientIds.filter(function(id) { return !availableIds.has(id); }).length;
-    return Object.assign({}, r, { status: miss === 0 ? 'complete' : 'incomplete', missingCount: miss });
+    const missingIds = r.ingredientIds.filter(function(id) { return !availableIds.has(id); });
+    const missingNames = missingIds.map(function(id) { return idToName[id]; }).filter(Boolean);
+    return Object.assign({}, r, { status: missingIds.length === 0 ? 'complete' : 'incomplete', missingCount: missingIds.length, missingNames });
   });
 
   if (isRandom) {
@@ -325,9 +328,12 @@ async function searchByIngredient(ingredientName) {
     availableIds = new Set(availableIngredients.filter(function(i) { return i.hasIt; }).map(function(i) { return i.id; }));
   } catch(e) {}
 
+  const idToName2 = {};
+  availableIngredients.forEach(function(i) { idToName2[i.id] = i.name; });
   const recipesWithStatus = allRecipes.map(function(r) {
-    const miss = (r.ingredientIds || []).filter(function(id) { return !availableIds.has(id); }).length;
-    return Object.assign({}, r, { status: miss === 0 ? 'complete' : 'incomplete', missingCount: miss, availableIngredients: availableIngredients });
+    const missingIds = (r.ingredientIds || []).filter(function(id) { return !availableIds.has(id); });
+    const missingNames = missingIds.map(function(id) { return idToName2[id]; }).filter(Boolean);
+    return Object.assign({}, r, { status: missingIds.length === 0 ? 'complete' : 'incomplete', missingCount: missingIds.length, missingNames, availableIngredients: availableIngredients });
   });
 
   setUserState(ingredientName + '_search', { mode: 'browse_recipes', recipes: recipesWithStatus, availableIngredients: availableIngredients });
