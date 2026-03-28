@@ -27,19 +27,43 @@ function getUserState(u) {
 function clearUserState(u) { delete userState[u]; }
 
 function buildCategoryMenu(isRandom) {
+  const title = isRandom ? '🎲 隨機推薦' : '🍽️ 想吃什麼？';
+  const cats = [
+    { emoji: '🍚', label: '主食', text: '1' },
+    { emoji: '🥦', label: '配菜蔬菜', text: '2' },
+    { emoji: '🥩', label: '配菜肉類', text: '3' },
+    { emoji: '🍳', label: '配菜其他', text: '4' },
+    { emoji: '🥣', label: '湯品', text: '5' },
+    { emoji: '🧁', label: '甜點', text: '6' },
+  ];
+  const headerBubble = {
+    type: 'bubble', size: 'micro',
+    body: {
+      type: 'box', layout: 'vertical', justifyContent: 'center',
+      paddingAll: '16px', backgroundColor: ORANGE,
+      contents: [
+        { type: 'text', text: title, weight: 'bold', size: 'sm', color: WHITE, align: 'center', wrap: true },
+        { type: 'text', text: isRandom ? '幫你隨機挑一道！' : '點選類別來找食譜', size: 'xs', color: '#FFE8D6', align: 'center', margin: 'sm', wrap: true },
+      ],
+    },
+  };
+  const catBubbles = cats.map(function(cat) {
+    return {
+      type: 'bubble', size: 'micro',
+      body: {
+        type: 'box', layout: 'vertical', spacing: 'sm', paddingAll: '14px',
+        action: { type: 'message', label: cat.label, text: cat.text },
+        contents: [
+          { type: 'text', text: cat.emoji, size: '3xl', align: 'center' },
+          { type: 'text', text: cat.label, weight: 'bold', size: 'sm', align: 'center', color: DARK, wrap: true },
+        ],
+      },
+      styles: { body: { backgroundColor: '#FFF8F4' } },
+    };
+  });
   return {
-    type: 'text',
-    text: isRandom ? '好！請選擇哪類料理（我直接幫你挑一道！）' : '今天想吃什麼？請選擇類型：',
-    quickReply: {
-      items: [
-        { type: 'action', action: { type: 'message', label: '主食', text: '1' } },
-        { type: 'action', action: { type: 'message', label: '配菜蔬菜', text: '2' } },
-        { type: 'action', action: { type: 'message', label: '配菜肉類', text: '3' } },
-        { type: 'action', action: { type: 'message', label: '配菜其他', text: '4' } },
-        { type: 'action', action: { type: 'message', label: '湯品', text: '5' } },
-        { type: 'action', action: { type: 'message', label: '甜點', text: '6' } }
-      ]
-    }
+    type: 'flex', altText: title,
+    contents: { type: 'carousel', contents: [headerBubble].concat(catBubbles) },
   };
 }
 
