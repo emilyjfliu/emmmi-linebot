@@ -91,7 +91,7 @@ async function processInput(userId, input, state) {
         var uid = userId;
         setImmediate(async function() {
           try {
-            var r = await handleMealPlanning(days);
+            var r = await handleMealPlanning(uid, days);
             await sendPushMsg(uid, r);
           } catch(e) {
             console.error('規劃失敗:', e.message, e.stack);
@@ -112,6 +112,35 @@ async function processInput(userId, input, state) {
       if (/^\d+$/.test(input)) {
         var r = await recipes.handleRecipeSelection(userId, input);
         if (r) return r;
+      }
+      recipes.clearUserState(userId);
+    } else if (state.mode === 'plan_confirm') {
+      if (/確認|好|ok|OK|沒問題|就這樣/.test(input) || input === '確認餐點規劃') {
+        recipes.clearUserState(userId);
+        return { type: 'text', text: '✅ 太棒了！餐點確認完成 🎉\n\n隨時輸入食材或「我要吃什麼」繼續使用！' };
+      }
+      if (/重新|換一個|不要|重新規劃/.test(input)) {
+        var prevDays = state.days || 3;
+        recipes.clearUserState(userId);
+        var uid3 = userId;
+        setImmediate(async function() {
+          try {
+            var r3 = await handleMealPlanning(uid3, prevDays);
+            await sendPushMsg(uid3, r3);
+          } catch(e) {
+            await sendPushMsg(uid3, '重新規劃時發生問題：' + e.message);
+          }
+        });
+        return { type: 'text', text: '好！重新為你規劃 ' + prevDays + ' 天的餐點，請稍等⋯ 🔄' };
+      }
+      if (/調整|改|換天數|調整餐點天數/.test(input)) {
+        recipes.clearUserState(userId);
+        recipes.setUserState(userId, { mode: 'plan_meals_days' });
+        return { type: 'text', text: '好！要規劃幾天的餐點？', quickReply: { items: [
+          { type: 'action', action: { type: 'message', label: '3天', text: '3' } },
+          { type: 'action', action: { type: 'message', label: '5天', text: '5' } },
+          { type: 'action', action: { type: 'message', label: '7天', text: '7' } }
+        ] } };
       }
       recipes.clearUserState(userId);
     }
@@ -194,7 +223,7 @@ async function processInput(userId, input, state) {
   return { type: 'text', text: getHelpText() };
 }
 
-async function handleMealPlanning(days) {
+async function handleMealPlanning(userId, days) {
   console.log('🍽️ 規劃 ' + days + ' 天...');
   try {
     var data = await Promise.all([notionUtil.getAllIngredients(), notionUtil.getAllRecipes()]);
@@ -214,7 +243,12 @@ async function handleMealPlanning(days) {
     });
     if (plan.toBuy && plan.toBuy.length > 0) text += '\n🛒 需購買：' + plan.toBuy.join('、');
     if (plan.crossUsageTips) text += '\n\n💡 ' + plan.crossUsageTips;
-    return { type: 'text', text: text };
+    recipes.setUserState(userId, { mode: 'plan_confirm', days: days });
+    return { type: 'text', text: text, quickReply: { items: [
+      { type: 'action', action: { type: 'message', label: '✅ 確認', text: '確認餐點規劃' } },
+      { type: 'action', action: { type: 'message', label: '🔄 重新規劃', text: '重新規劃' } },
+      { type: 'action', action: { type: 'message', label: '✏️ 調整天數', text: '調整餐點天數' } }
+    ] } };
   } catch(e) {
     console.error('規劃失敗:', e.message, e.stack);
     return { type: 'text', text: '規劃時發生問題：' + e.message };
